@@ -35,6 +35,7 @@ import org.jboss.msc.service.ValueService;
 import org.jboss.msc.value.ImmediateValue;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.staxmapper.XMLElementReader;
+import org.jboss.staxmapper.XMLExtendedStreamReader;
 import org.jboss.staxmapper.XMLMapper;
 import org.jboss.vfs.TempFileProvider;
 import org.wildfly.swarm.container.Container;
@@ -48,6 +49,8 @@ import org.wildfly.swarm.container.SocketBindingGroup;
 
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import java.io.InputStream;
 import java.net.URL;
@@ -56,6 +59,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -70,6 +74,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.LogManager;
 
+import static javax.xml.stream.XMLStreamConstants.COMMENT;
+import static javax.xml.stream.XMLStreamConstants.END_ELEMENT;
+import static javax.xml.stream.XMLStreamConstants.START_ELEMENT;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.*;
 
 /**
@@ -432,18 +439,27 @@ public class RuntimeServer implements Server {
 
         }
 
-        // register parsers
-        final XMLMapper xmlMapper = XMLMapper.Factory.create();
-        parsers.forEach(xmlMapper::registerRootElement);
-
         // the actual parsing
         InputStream input = xmlConfig.get().openStream();
         try {
             final XMLStreamReader reader = XMLInputFactory.newInstance().createXMLStreamReader(input);
+            XMLMapper xmlMapper = XMLMapper.Factory.create();
+
+            xmlMapper.registerRootElement(new QName("urn:jboss:domain:4.0","server"), new DelegateReader());
+            xmlMapper.registerRootElement(new QName("urn:jboss:domain:4.0","extensions"), new DelegateReader());
+            xmlMapper.registerRootElement(new QName("urn:jboss:domain:4.0","management"), new DelegateReader());
+            xmlMapper.registerRootElement(new QName("urn:jboss:domain:4.0","profile"), new ProfileReader());
+            xmlMapper.registerRootElement(new QName("urn:jboss:domain:4.0","interfaces"), new DelegateReader());
+            xmlMapper.registerRootElement(new QName("urn:jboss:domain:4.0","socket-binding-group"), new DelegateReader());
+
             xmlMapper.parseDocument(operationList, reader);
+
+
         } finally {
             if(input!=null) input.close();
         }
+
+        operationList.forEach(modelNode -> System.out.println(modelNode));
 
     }
 
@@ -482,4 +498,71 @@ public class RuntimeServer implements Server {
         */
     }
 
+    class DelegateReader implements XMLElementReader {
+
+        Set<String> delegateFurther;
+
+        public DelegateReader() {
+            this.delegateFurther = new HashSet<>();
+            this.delegateFurther.add("profile");
+        }
+
+        @Override
+        public void readElement(XMLExtendedStreamReader reader, Object o) throws XMLStreamException {
+
+            while (reader.hasNext()) {
+                switch (reader.next()) {
+                    case COMMENT:
+                        break;
+                    case END_ELEMENT:
+                        return;
+                    case START_ELEMENT:
+                        String localName = reader.getLocalName();
+                        if(delegateFurther.contains(localName)) {
+                            reader.handleAny(o);
+                        }
+                        else {
+                            System.out.println("Skip " + reader.getNamespaceURI() + "::" + localName);
+                            reader.discardRemainder();
+                        }
+                        break;
+                }
+            }
+        }
+    }
+
+    class ProfileReader implements XMLElementReader {
+
+        @Override
+        public void readElement(XMLExtendedStreamReader reader, Object o) throws XMLStreamException {
+
+            int event = reader.getEventType();
+            while(true){
+                switch(event) {
+                    case XMLStreamConstants.START_ELEMENT:
+
+                        if(reader.getLocalName().equals("profile"))  // skip to profile contents
+                            break;
+
+                        QName lookup = new QName(reader.getNamespaceURI(), reader.getLocalName());
+                        System.out.println("Parsing " + lookup);
+                        try {
+                            reader.handleAny(o);
+                        } catch (XMLStreamException e) {
+                            // ignore
+                        }
+                        break;
+                    case XMLStreamConstants.CHARACTERS:
+                        break;
+                    case XMLStreamConstants.END_ELEMENT:
+                        break;
+                }
+
+                if (!reader.hasNext())
+                    break;
+
+                event = reader.next();
+            }
+        }
+    }
 }
