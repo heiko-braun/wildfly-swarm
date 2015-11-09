@@ -15,6 +15,7 @@
  */
 package org.wildfly.swarm.container;
 
+import java.net.URL;
 import java.util.Set;
 
 /**
@@ -24,6 +25,8 @@ public interface Server {
 
     Deployer start(Container config) throws Exception;
     void stop() throws Exception;
+
+    void setXmlConfig(URL xmlConfig);
 
     Set<Class<? extends Fraction>> getFractionTypes();
     Fraction createDefaultFor(Class<? extends Fraction> fractionClazz);

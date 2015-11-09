@@ -18,6 +18,8 @@ package org.wildfly.swarm.datasources;
 import org.junit.Test;
 import org.wildfly.swarm.container.Container;
 
+import java.net.URL;
+
 /**
  * @author Bob McWhirter
  */
@@ -26,6 +28,15 @@ public class DatasourcesInVmTest {
     @Test
     public void testSimple() throws Exception {
         Container container = new Container();
+        container.fraction( new DatasourcesFraction() );
+        container.start().stop();
+    }
+
+    @Test
+    public void testXMLConfig() throws Exception {
+
+        ClassLoader cl = DatasourcesInVmTest.class.getClassLoader();
+        Container container = new Container(false, cl.getResource("standalone.xml"));
         container.fraction( new DatasourcesFraction() );
         container.start().stop();
     }

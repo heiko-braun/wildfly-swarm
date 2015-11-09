@@ -15,23 +15,6 @@
  */
 package org.wildfly.swarm.container.runtime;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.ServiceLoader;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.logging.LogManager;
-
 import org.jboss.as.controller.ModelController;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.client.ModelControllerClient;
@@ -51,6 +34,8 @@ import org.jboss.msc.service.ServiceRegistryException;
 import org.jboss.msc.service.ValueService;
 import org.jboss.msc.value.ImmediateValue;
 import org.jboss.shrinkwrap.api.Archive;
+import org.jboss.staxmapper.XMLElementReader;
+import org.jboss.staxmapper.XMLMapper;
 import org.jboss.vfs.TempFileProvider;
 import org.wildfly.swarm.container.Container;
 import org.wildfly.swarm.container.Deployer;
@@ -61,22 +46,38 @@ import org.wildfly.swarm.container.Server;
 import org.wildfly.swarm.container.SocketBinding;
 import org.wildfly.swarm.container.SocketBindingGroup;
 
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADD;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DEFAULT_INTERFACE;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.EXTENSION;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.INET_ADDRESS;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MULTICAST_ADDRESS;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MULTICAST_PORT;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PORT;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PORT_OFFSET;
+import javax.xml.namespace.QName;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamReader;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.ServiceLoader;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.logging.LogManager;
+
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.*;
 
 /**
  * @author Bob McWhirter
  * @author Ken Finnigan
  */
 public class RuntimeServer implements Server {
+
 
     private SelfContainedContainer container = new SelfContainedContainer();
 
@@ -92,7 +93,11 @@ public class RuntimeServer implements Server {
 
     private List<ServerConfiguration> configList = new ArrayList<>();
 
+    // optional XML config
+    private Optional<URL> xmlConfig = Optional.empty();
+
     public RuntimeServer() {
+
         try {
             Module loggingModule = Module.getBootModuleLoader().loadModule(ModuleIdentifier.create("org.wildfly.swarm.logging", "runtime"));
 
@@ -108,6 +113,13 @@ public class RuntimeServer implements Server {
         } catch (ModuleLoadException e) {
             System.err.println( "[WARN] wildfly-swarm-logging not available, logging will not be configured" );
         }
+    }
+
+    @Override
+    public void setXmlConfig(URL xmlConfig) {
+        if(null==xmlConfig)
+            throw new IllegalArgumentException("Invalid XML config");
+        this.xmlConfig = Optional.of(xmlConfig);
     }
 
     @Override
@@ -149,7 +161,7 @@ public class RuntimeServer implements Server {
                         .install();
                 // Provide the main command line args as a value service
                 context.getServiceTarget().addService(ServiceName.of("wildfly", "swarm", "main-args"), new ValueService<>(new ImmediateValue<Object>(config.getArgs())))
-                    .install();
+                        .install();
             }
         });
 
@@ -318,7 +330,10 @@ public class RuntimeServer implements Server {
         configureInterfaces(config, list);
         configureSocketBindingGroups(config, list);
 
-        configureFractions(config, list);
+        if(xmlConfig.isPresent())
+            configureFractionsFromXML(config, list);
+        else
+            configureFractions(config, list);
 
         return list;
     }
@@ -386,6 +401,50 @@ public class RuntimeServer implements Server {
         }
 
         list.add(node);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void configureFractionsFromXML(Container config, List<ModelNode> operationList) throws Exception {
+
+        final Map<QName, XMLElementReader<List<ModelNode>>> parsers = new HashMap<>();
+
+        OUTER:
+        for (ServerConfiguration eachConfig : this.configList) {
+            boolean found = false;
+            INNER:
+            for (Fraction eachFraction : config.fractions()) {
+                if (eachConfig.getType().isAssignableFrom(eachFraction.getClass())) {
+                    found = true;
+                    if(eachConfig.getSubsystemParsers().isPresent())
+                    {
+                        Map<QName, XMLElementReader<List<ModelNode>>> fractionParsers =
+                                (Map<QName, XMLElementReader<List<ModelNode>>>) eachConfig.getSubsystemParsers().get();
+
+                        parsers.putAll(fractionParsers);
+                    }
+
+                    break INNER;
+                }
+            }
+            if (!found && !eachConfig.isIgnorable()) {
+                System.err.println("*** unable to find parser for fraction : " + eachConfig.getType());
+            }
+
+        }
+
+        // register parsers
+        final XMLMapper xmlMapper = XMLMapper.Factory.create();
+        parsers.forEach(xmlMapper::registerRootElement);
+
+        // the actual parsing
+        InputStream input = xmlConfig.get().openStream();
+        try {
+            final XMLStreamReader reader = XMLInputFactory.newInstance().createXMLStreamReader(input);
+            xmlMapper.parseDocument(operationList, reader);
+        } finally {
+            if(input!=null) input.close();
+        }
+
     }
 
     private void configureFractions(Container config, List<ModelNode> list) throws Exception {

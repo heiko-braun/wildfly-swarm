@@ -17,11 +17,17 @@ package org.wildfly.swarm.container.runtime;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
+import org.jboss.as.controller.parsing.ExtensionParsingContext;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.ServiceActivator;
 import org.jboss.shrinkwrap.api.Archive;
+import org.jboss.staxmapper.XMLElementReader;
 import org.wildfly.swarm.container.Fraction;
+
+import javax.xml.namespace.QName;
 
 /**
  * @author Bob McWhirter
@@ -46,6 +52,10 @@ public interface ServerConfiguration<T extends Fraction> {
 
     default List<ModelNode> getList(T fraction) throws Exception {
         return Collections.emptyList();
+    }
+
+    default Optional<Map<QName, XMLElementReader<List<ModelNode>>>> getSubsystemParsers() throws Exception {
+        return Optional.empty();
     }
 
     default boolean isIgnorable() {

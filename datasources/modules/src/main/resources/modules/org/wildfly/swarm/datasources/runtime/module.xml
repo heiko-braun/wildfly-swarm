@@ -9,6 +9,8 @@
     <module name="org.wildfly.swarm.container" slot="runtime"/>
     <module name="org.wildfly.swarm.configuration"/>
 
+    <module name="javax.api"/>
+    <module name="org.jboss.staxmapper"/>
     <module name="org.jboss.as.connector"/>
   </dependencies>
 </module>

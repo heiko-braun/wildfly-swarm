@@ -15,13 +15,19 @@
  */
 package org.wildfly.swarm.datasources.runtime;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import org.jboss.as.connector.subsystems.datasources.DataSourcesExtension;
 import org.jboss.dmr.ModelNode;
+import org.jboss.staxmapper.XMLElementReader;
 import org.wildfly.swarm.config.runtime.invocation.Marshaller;
 import org.wildfly.swarm.container.runtime.AbstractServerConfiguration;
 import org.wildfly.swarm.datasources.DatasourcesFraction;
+
+import javax.xml.namespace.QName;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * @author Bob McWhirter
@@ -48,4 +54,13 @@ public class DatasourcesConfiguration extends AbstractServerConfiguration<Dataso
         return list;
     }
 
+    @Override
+    public Optional<Map<QName, XMLElementReader<List<ModelNode>>>> getSubsystemParsers() throws Exception {
+        Map<QName, XMLElementReader<List<ModelNode>>> map = new HashMap<>();
+        map.put(
+                new QName("datasources", "urn:jboss:domain:datasources:4.0"),
+                new DataSourcesExtension.DataSourceSubsystemParser()
+        );
+        return Optional.of(map);
+    }
 }

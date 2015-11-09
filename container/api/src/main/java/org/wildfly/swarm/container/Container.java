@@ -102,13 +102,20 @@ public class Container {
      */
     private String[] args;
 
+    // server configuration xml
+    private URL xmlConfig;
+
     /**
      * Construct a new, un-started container.
      *
      * @throws Exception If an error occurs performing classloading and initialization magic.
      */
     public Container() throws Exception {
-        this(false);
+        this(false, null);
+    }
+
+    public Container(boolean debugBootstrap) throws Exception {
+        this(debugBootstrap, null);
     }
 
     /**
@@ -119,9 +126,12 @@ public class Container {
      *                       initial bootstrap of the module layer.
      * @throws Exception If an error occurs performing classloading and initialization magic.
      */
-    public Container(boolean debugBootstrap) throws Exception {
+    public Container(boolean debugBootstrap, URL xmlConfig) throws Exception {
+
+        this.xmlConfig = xmlConfig;
+
         System.setProperty("wildfly.swarm.version", VERSION);
-        createServer(debugBootstrap);
+        createServer(debugBootstrap, xmlConfig);
         createShrinkWrapDomain();
     }
 
@@ -144,7 +154,7 @@ public class Container {
         }
     }
 
-    private void createServer(boolean debugBootstrap) throws Exception {
+    private void createServer(boolean debugBootstrap, URL xmlConfig) throws Exception {
         if (System.getProperty("boot.module.loader") == null) {
             System.setProperty("boot.module.loader", BootModuleLoader.class.getName());
         }
@@ -155,6 +165,8 @@ public class Container {
         Class<?> serverClass = module.getClassLoader().loadClass("org.wildfly.swarm.container.runtime.RuntimeServer");
         try {
             this.server = (Server) serverClass.newInstance();
+            if(xmlConfig!=null)
+                this.server.setXmlConfig(xmlConfig);
         } catch (Throwable t) {
             t.printStackTrace();
         }
@@ -195,7 +207,7 @@ public class Container {
     }
 
     public Container fraction(Supplier<Fraction> supplier) {
-        return fraction( supplier.get() );
+        return fraction(supplier.get());
     }
 
     public List<Fraction> fractions() {
@@ -557,4 +569,5 @@ public class Container {
 
         return false;
     }
+
 }
