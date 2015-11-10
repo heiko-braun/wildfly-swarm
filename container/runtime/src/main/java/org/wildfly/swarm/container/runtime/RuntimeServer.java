@@ -413,7 +413,7 @@ public class RuntimeServer implements Server {
     @SuppressWarnings("unchecked")
     private void configureFractionsFromXML(Container config, List<ModelNode> operationList) throws Exception {
 
-        final Map<QName, XMLElementReader<List<ModelNode>>> parsers = new HashMap<>();
+        StandaloneXmlParser parser = new StandaloneXmlParser();
 
         OUTER:
         for (ServerConfiguration eachConfig : this.configList) {
@@ -427,7 +427,7 @@ public class RuntimeServer implements Server {
                         Map<QName, XMLElementReader<List<ModelNode>>> fractionParsers =
                                 (Map<QName, XMLElementReader<List<ModelNode>>>) eachConfig.getSubsystemParsers().get();
 
-                        parsers.putAll(fractionParsers);
+                        fractionParsers.forEach(parser::addDelegate);
                     }
 
                     break INNER;
@@ -440,26 +440,9 @@ public class RuntimeServer implements Server {
         }
 
         // the actual parsing
-        InputStream input = xmlConfig.get().openStream();
-        try {
-            final XMLStreamReader reader = XMLInputFactory.newInstance().createXMLStreamReader(input);
-            XMLMapper xmlMapper = XMLMapper.Factory.create();
 
-            xmlMapper.registerRootElement(new QName("urn:jboss:domain:4.0","server"), new DelegateReader());
-            xmlMapper.registerRootElement(new QName("urn:jboss:domain:4.0","extensions"), new DelegateReader());
-            xmlMapper.registerRootElement(new QName("urn:jboss:domain:4.0","management"), new DelegateReader());
-            xmlMapper.registerRootElement(new QName("urn:jboss:domain:4.0","profile"), new ProfileReader());
-            xmlMapper.registerRootElement(new QName("urn:jboss:domain:4.0","interfaces"), new DelegateReader());
-            xmlMapper.registerRootElement(new QName("urn:jboss:domain:4.0","socket-binding-group"), new DelegateReader());
-
-            xmlMapper.parseDocument(operationList, reader);
-
-
-        } finally {
-            if(input!=null) input.close();
-        }
-
-        operationList.forEach(modelNode -> System.out.println(modelNode));
+        List<ModelNode> parseResult = parser.parse(xmlConfig.get());
+        operationList.addAll(parseResult);
 
     }
 
@@ -496,85 +479,5 @@ public class RuntimeServer implements Server {
             }
         }
         */
-    }
-
-    class DelegateReader implements XMLElementReader {
-
-        Set<String> delegateFurther;
-
-        public DelegateReader() {
-            this.delegateFurther = new HashSet<>();
-            this.delegateFurther.add("profile");
-        }
-
-        @Override
-        public void readElement(XMLExtendedStreamReader reader, Object o) throws XMLStreamException {
-
-            while (reader.hasNext()) {
-                switch (reader.next()) {
-                    case COMMENT:
-                        break;
-                    case END_ELEMENT:
-                        return;
-                    case START_ELEMENT:
-                        String localName = reader.getLocalName();
-                        if(delegateFurther.contains(localName)) {
-                            reader.handleAny(o);
-                        }
-                        else {
-                            System.out.println("Skip " + reader.getNamespaceURI() + "::" + localName);
-                            reader.discardRemainder();
-                        }
-                        break;
-                }
-            }
-        }
-    }
-
-    class ProfileReader implements XMLElementReader {
-
-        @Override
-        public void readElement(XMLExtendedStreamReader reader, Object o) throws XMLStreamException {
-
-            QName skippedElement = null;
-            int event = reader.getEventType();
-            while(true){
-                switch(event) {
-                    case XMLStreamConstants.START_ELEMENT:
-
-                        QName elementName = new QName(reader.getNamespaceURI(), reader.getLocalName());
-
-                        if(elementName.getLocalPart().equals("profile")
-                                || skippedElement!=null)  // skip to profile contents
-                            break;
-
-
-                        //System.out.println("Parsing " + elementName);
-                        try {
-                            reader.handleAny(o);
-                        } catch (XMLStreamException e) {
-                            // ignore
-                            skippedElement = elementName;
-                        }
-                        break;
-                    case XMLStreamConstants.CHARACTERS:
-                        break;
-                    case XMLStreamConstants.END_ELEMENT:
-                        if(skippedElement!=null
-                                &&reader.getNamespaceURI().equals(skippedElement.getNamespaceURI())
-                                && reader.getLocalName().equals(skippedElement.getLocalPart())
-                                )
-                        {
-                            skippedElement = null;
-                        }
-                        break;
-                }
-
-                if (!reader.hasNext())
-                    break;
-
-                event = reader.next();
-            }
-        }
     }
 }

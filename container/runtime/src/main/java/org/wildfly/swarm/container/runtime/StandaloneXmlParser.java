@@ -56,7 +56,7 @@ public class StandaloneXmlParser {
 
             xmlMapper.parseDocument(operationList, reader);
 
-            operationList.forEach(System.out::println);
+            //operationList.forEach(System.out::println);
 
         } catch(Throwable t) {
             System.out.println(t);
