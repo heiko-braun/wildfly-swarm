@@ -536,25 +536,37 @@ public class RuntimeServer implements Server {
         @Override
         public void readElement(XMLExtendedStreamReader reader, Object o) throws XMLStreamException {
 
+            QName skippedElement = null;
             int event = reader.getEventType();
             while(true){
                 switch(event) {
                     case XMLStreamConstants.START_ELEMENT:
 
-                        if(reader.getLocalName().equals("profile"))  // skip to profile contents
+                        QName elementName = new QName(reader.getNamespaceURI(), reader.getLocalName());
+
+                        if(elementName.getLocalPart().equals("profile")
+                                || skippedElement!=null)  // skip to profile contents
                             break;
 
-                        QName lookup = new QName(reader.getNamespaceURI(), reader.getLocalName());
-                        System.out.println("Parsing " + lookup);
+
+                        //System.out.println("Parsing " + elementName);
                         try {
                             reader.handleAny(o);
                         } catch (XMLStreamException e) {
                             // ignore
+                            skippedElement = elementName;
                         }
                         break;
                     case XMLStreamConstants.CHARACTERS:
                         break;
                     case XMLStreamConstants.END_ELEMENT:
+                        if(skippedElement!=null
+                                &&reader.getNamespaceURI().equals(skippedElement.getNamespaceURI())
+                                && reader.getLocalName().equals(skippedElement.getLocalPart())
+                                )
+                        {
+                            skippedElement = null;
+                        }
                         break;
                 }
 

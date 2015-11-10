@@ -58,7 +58,7 @@ public class DatasourcesConfiguration extends AbstractServerConfiguration<Dataso
     public Optional<Map<QName, XMLElementReader<List<ModelNode>>>> getSubsystemParsers() throws Exception {
         Map<QName, XMLElementReader<List<ModelNode>>> map = new HashMap<>();
         map.put(
-                new QName("datasources", "urn:jboss:domain:datasources:4.0"),
+                new QName("urn:jboss:domain:datasources:4.0", "subsystem"),
                 new DataSourcesExtension.DataSourceSubsystemParser()
         );
         return Optional.of(map);

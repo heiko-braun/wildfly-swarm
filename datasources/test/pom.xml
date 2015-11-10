@@ -69,6 +69,12 @@
     </dependency>
 
     <dependency>
+      <groupId>org.wildfly</groupId>
+      <artifactId>wildfly-connector</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
       <groupId>org.jboss</groupId>
       <artifactId>staxmapper</artifactId>
       <version>1.2.0.Final</version>
