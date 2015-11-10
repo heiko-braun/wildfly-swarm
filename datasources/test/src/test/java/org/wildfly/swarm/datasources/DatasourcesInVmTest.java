@@ -44,7 +44,8 @@ public class DatasourcesInVmTest {
         ClassLoader cl = DatasourcesInVmTest.class.getClassLoader();
         Container container = new Container(false, cl.getResource("standalone.xml"));
         container.fraction(new DatasourcesFraction());
-        container.start().stop();
+        container.start();
+        container.stop();
     }
 
     @Test
