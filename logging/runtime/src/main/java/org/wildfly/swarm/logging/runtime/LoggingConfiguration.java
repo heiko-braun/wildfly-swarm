@@ -16,12 +16,19 @@
 package org.wildfly.swarm.logging.runtime;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
+import org.jboss.as.logging.LoggingParserFactory;
 import org.jboss.dmr.ModelNode;
+import org.jboss.staxmapper.XMLElementReader;
 import org.wildfly.swarm.config.runtime.invocation.Marshaller;
 import org.wildfly.swarm.container.runtime.AbstractServerConfiguration;
 import org.wildfly.swarm.logging.LoggingFraction;
+
+import javax.xml.namespace.QName;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADD;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.EXTENSION;
@@ -74,5 +81,15 @@ public class LoggingConfiguration extends AbstractServerConfiguration<LoggingFra
         list.addAll(Marshaller.marshal(fraction));
 
         return list;
+    }
+
+    @Override
+    public Optional<Map<QName, XMLElementReader<List<ModelNode>>>> getSubsystemParsers() throws Exception {
+        Map<QName, XMLElementReader<List<ModelNode>>> map = new HashMap<>();
+        map.put(
+                new QName("urn:jboss:domain:logging:3.0", "subsystem"),
+                new LoggingParserFactory().create()
+        );
+        return Optional.of(map);
     }
 }
