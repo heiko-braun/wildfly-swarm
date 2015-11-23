@@ -50,8 +50,8 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -63,7 +63,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.LogManager;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.*;
@@ -132,10 +131,13 @@ public class RuntimeServer implements Server {
             fraction.postInitialize( config.createPostInitContext() );
         }
 
-        List<ModelNode> list = getList(config);
+        LinkedList<ModelNode> bootstrapOperations = new LinkedList<>();
 
-        // float all <extension> up to the head of the list
-        list.sort(new ExtensionOpPriorityComparator());
+        // the extensions
+        getExtensions(config, bootstrapOperations);
+
+        // the subsystem configurations
+        getList(config, bootstrapOperations);
 
         //System.err.println( list );
 
@@ -178,7 +180,7 @@ public class RuntimeServer implements Server {
         }
 
 
-        this.serviceContainer = this.container.start(list, this.contentProvider, activators);
+        this.serviceContainer = this.container.start(bootstrapOperations, this.contentProvider, activators);
         for (ServiceName serviceName : this.serviceContainer.getServiceNames()) {
             ServiceController<?> serviceController = this.serviceContainer.getService(serviceName);
             if (serviceController.getStartException() != null) {
@@ -210,29 +212,6 @@ public class RuntimeServer implements Server {
 
         return this.deployer;
     }
-
-    private static class ExtensionOpPriorityComparator implements Comparator<ModelNode> {
-        @Override
-        public int compare(ModelNode left, ModelNode right) {
-
-            PathAddress leftAddr = PathAddress.pathAddress(left.get(OP_ADDR));
-            PathAddress rightAddr = PathAddress.pathAddress(right.get(OP_ADDR));
-
-            String leftOpName = left.require(OP).asString();
-            String rightOpName = left.require(OP).asString();
-
-            if (leftAddr.size() == 1 && leftAddr.getElement(0).getKey().equals(EXTENSION) && leftOpName.equals(ADD)) {
-                return -1;
-            }
-
-            if (rightAddr.size() == 1 && rightAddr.getElement(0).getKey().equals(EXTENSION) && rightOpName.equals(ADD)) {
-                return 1;
-            }
-
-            return 0;
-        }
-    }
-
 
     public void stop() throws Exception {
 
@@ -320,8 +299,22 @@ public class RuntimeServer implements Server {
         }
     }
 
-    private List<ModelNode> getList(Container config) throws Exception {
-        List<ModelNode> list = new ArrayList<>();
+    private void getExtensions(Container container, List<ModelNode> list) throws Exception {
+
+        FractionProcessor<List<ModelNode>> consumer = (context, cfg, fraction) -> {
+            try {
+                Optional<ModelNode> extension = cfg.getExtension();
+                extension.map(modelNode -> list.add(modelNode));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
+
+        visitFractions(container, list, consumer);
+
+    }
+
+    private void getList(Container config, List<ModelNode> list) throws Exception {
 
         configureInterfaces(config, list);
         configureSocketBindingGroups(config, list);
@@ -331,7 +324,6 @@ public class RuntimeServer implements Server {
         else
             configureFractions(config, list);
 
-        return list;
     }
 
     private void configureInterfaces(Container config, List<ModelNode> list) {
@@ -400,36 +392,28 @@ public class RuntimeServer implements Server {
     }
 
     @SuppressWarnings("unchecked")
-    private void configureFractionsFromXML(Container config, List<ModelNode> operationList) throws Exception {
+    private void configureFractionsFromXML(Container container, List<ModelNode> operationList) throws Exception {
 
         StandaloneXmlParser parser = new StandaloneXmlParser();
 
-        OUTER:
-        for (ServerConfiguration eachConfig : this.configList) {
-            boolean found = false;
-            INNER:
-            for (Fraction eachFraction : config.fractions()) {
-                if (eachConfig.getType().isAssignableFrom(eachFraction.getClass())) {
-                    found = true;
-                    if(eachConfig.getSubsystemParsers().isPresent())
-                    {
-                        Map<QName, XMLElementReader<List<ModelNode>>> fractionParsers =
-                                (Map<QName, XMLElementReader<List<ModelNode>>>) eachConfig.getSubsystemParsers().get();
+        FractionProcessor<StandaloneXmlParser> consumer = (p, cfg, fraction) -> {
+            try {
+                if(cfg.getSubsystemParsers().isPresent())
+                {
+                    Map<QName, XMLElementReader<List<ModelNode>>> fractionParsers =
+                            (Map<QName, XMLElementReader<List<ModelNode>>>) cfg.getSubsystemParsers().get();
 
-                        fractionParsers.forEach(parser::addDelegate);
-                    }
-
-                    break INNER;
+                    fractionParsers.forEach(p::addDelegate);
                 }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
-            if (!found && !eachConfig.isIgnorable()) {
-                System.err.println("*** unable to find parser for fraction : " + eachConfig.getType());
-            }
+        };
 
-        }
+        // collect parsers
+        visitFractions(container, parser, consumer);
 
-        // the actual parsing
-
+        // parse the configurations
         List<ModelNode> parseResult = parser.parse(xmlConfig.get());
         operationList.addAll(parseResult);
 
@@ -437,14 +421,32 @@ public class RuntimeServer implements Server {
 
     private void configureFractions(Container config, List<ModelNode> list) throws Exception {
 
+        FractionProcessor<List<ModelNode>> consumer = (context, cfg, fraction) -> {
+            try {
+                context.addAll(cfg.getList(fraction));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
+
+        visitFractions(config, list, consumer);
+    }
+
+    /**
+     * Wraps common iteration pattern over fraction and server configurations
+     * @param container
+     * @param context processing context (i.e. accumulator)
+     * @param fn a {@link org.wildfly.swarm.container.runtime.RuntimeServer.FractionProcessor} instance
+     */
+    private <T> void visitFractions(Container container, T context, FractionProcessor<T> fn) {
         OUTER:
         for (ServerConfiguration eachConfig : this.configList) {
             boolean found = false;
             INNER:
-            for (Fraction eachFraction : config.fractions()) {
+            for (Fraction eachFraction : container.fractions()) {
                 if (eachConfig.getType().isAssignableFrom(eachFraction.getClass())) {
                     found = true;
-                    list.addAll(eachConfig.getList(eachFraction));
+                    fn.accept(context, eachConfig, eachFraction);
                     break INNER;
                 }
             }
@@ -453,20 +455,12 @@ public class RuntimeServer implements Server {
             }
 
         }
-        /*
-        for (Fraction fraction : config.fractions()) {
-            ServerConfiguration serverConfig = this.configByFractionType.get(fraction.getClass());
-            if (serverConfig != null) {
-                list.addAll(serverConfig.getList(fraction));
-            } else {
-                for (Class<? extends Fraction> fractionClass : this.configByFractionType.keySet()) {
-                    if (fraction.getClass().isAssignableFrom(fractionClass)) {
-                        list.addAll(this.configByFractionType.get(fractionClass).getList(fraction));
-                        break;
-                    }
-                }
-            }
-        }
-        */
     }
+
+    @FunctionalInterface
+    interface FractionProcessor<T> {
+        void accept(T t, ServerConfiguration config, Fraction fraction);
+    }
+
+
 }

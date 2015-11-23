@@ -29,10 +29,7 @@ import org.wildfly.swarm.logging.LoggingFraction;
 
 import javax.xml.namespace.QName;
 
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADD;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.EXTENSION;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.*;
 
 /**
  * @author Bob McWhirter
@@ -67,19 +64,17 @@ public class LoggingConfiguration extends AbstractServerConfiguration<LoggingFra
         }
 
         List<ModelNode> list = new ArrayList<>();
-
-        ModelNode address = new ModelNode();
-
-        address.setEmptyList();
-
-        ModelNode add = new ModelNode();
-        add.get(OP_ADDR).set(address).add(EXTENSION, "org.jboss.as.logging");
-        add.get(OP).set(ADD);
-        list.add(add);
-
         list.addAll(Marshaller.marshal(fraction));
-
         return list;
+    }
+
+    @Override
+    public Optional<ModelNode> getExtension() {
+        ModelNode op = new ModelNode();
+        op.get(ADDRESS).add(EXTENSION, "org.jboss.as.logging");
+        op.get(OP).set(ADD);
+
+        return Optional.of(op);
     }
 
     @Override

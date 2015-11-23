@@ -15,8 +15,7 @@
  */
 package org.wildfly.swarm.connector.runtime;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Optional;
 
 import org.jboss.dmr.ModelNode;
 import org.wildfly.swarm.connector.ConnectorFraction;
@@ -32,6 +31,8 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_
  */
 public class ConnectorConfiguration extends AbstractServerConfiguration<ConnectorFraction> {
 
+    private static final String EXTENSION_NAME = "org.jboss.as.connector";
+
     public ConnectorConfiguration() {
         super(ConnectorFraction.class);
     }
@@ -42,15 +43,11 @@ public class ConnectorConfiguration extends AbstractServerConfiguration<Connecto
     }
 
     @Override
-    public List<ModelNode> getList(ConnectorFraction fraction) {
-        List<ModelNode> list = new ArrayList<>();
-
+    public Optional<ModelNode> getExtension() {
         ModelNode node = new ModelNode();
-        node.get(OP_ADDR).set(EXTENSION, "org.jboss.as.connector");
+        node.get(OP_ADDR).set(EXTENSION, EXTENSION_NAME);
         node.get(OP).set(ADD);
-        list.add(node);
 
-        return list;
-
+        return Optional.of(node);
     }
 }
