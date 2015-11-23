@@ -80,10 +80,11 @@ public class LoggingConfiguration extends AbstractServerConfiguration<LoggingFra
     @Override
     public Optional<Map<QName, XMLElementReader<List<ModelNode>>>> getSubsystemParsers() throws Exception {
         Map<QName, XMLElementReader<List<ModelNode>>> map = new HashMap<>();
-        map.put(
-                new QName("urn:jboss:domain:logging:3.0", "subsystem"),
-                new LoggingParserFactory().create()
-        );
+
+        new LoggingParserFactory().create().forEach((qName, XMLElementReader) -> {
+            map.put(new QName(qName.getNamespaceURI(), "subsystem"), XMLElementReader);
+        });
+
         return Optional.of(map);
     }
 }

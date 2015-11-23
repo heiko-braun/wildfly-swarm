@@ -7,6 +7,7 @@ import org.wildfly.swarm.container.runtime.AbstractParserFactory;
 
 import javax.xml.namespace.QName;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Heiko Braun
@@ -15,12 +16,10 @@ import java.util.List;
 public class JCAParserFactory extends AbstractParserFactory {
 
     @Override
-    public XMLElementReader<List<ModelNode>> create() {
+    public Map<QName, XMLElementReader<List<ModelNode>>> create() {
         ParsingContext ctx = new ParsingContext();
         JcaExtension ext = new JcaExtension();
         ext.initializeParsers(ctx);
-        return (XMLElementReader<List<ModelNode>>) ctx.getParser().get(
-                new QName("urn:jboss:domain:jca:4.0", "jca")
-        );
+        return ctx.getParser();
     }
 }

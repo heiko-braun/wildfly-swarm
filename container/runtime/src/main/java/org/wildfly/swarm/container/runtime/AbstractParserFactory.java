@@ -18,7 +18,7 @@ import java.util.Map;
  */
 public abstract class AbstractParserFactory {
 
-    public abstract XMLElementReader<List<ModelNode>> create();
+    public abstract Map<QName,  XMLElementReader<List<ModelNode>>> create();
 
     public class ParsingContext implements ExtensionParsingContext {
 

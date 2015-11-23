@@ -51,10 +51,9 @@ public class JCAConfiguration extends AbstractServerConfiguration<JCAFraction> {
     @Override
     public Optional<Map<QName, XMLElementReader<List<ModelNode>>>> getSubsystemParsers() throws Exception {
         Map<QName, XMLElementReader<List<ModelNode>>> map = new HashMap<>();
-        map.put(
-                new QName("urn:jboss:domain:jca:4.0", "subsystem"),
-                new JCAParserFactory().create()
-        );
+        new JCAParserFactory().create().forEach((qName, XMLElementReader) -> {
+            map.put(new QName(qName.getNamespaceURI(), "subsystem"), XMLElementReader);
+        });
         return Optional.of(map);
     }
 }

@@ -7,6 +7,7 @@ import org.wildfly.swarm.container.runtime.AbstractParserFactory;
 
 import javax.xml.namespace.QName;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The actual logging parsers are package protected, hence this intermediary.
@@ -15,13 +16,12 @@ import java.util.List;
  * @since 10/11/15
  */
 public class LoggingParserFactory extends AbstractParserFactory {
-    public XMLElementReader<List<ModelNode>> create() {
+
+    public Map<QName, XMLElementReader<List<ModelNode>>> create() {
 
         ParsingContext ctx = new ParsingContext();
         LoggingExtension ext = new LoggingExtension();
         ext.initializeParsers(ctx);
-        return (XMLElementReader<List<ModelNode>>) ctx.getParser().get(
-                new QName("urn:jboss:domain:logging:3.0", "logging")
-        );
+        return ctx.getParser();
     }
 }
