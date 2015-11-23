@@ -17,6 +17,7 @@ package org.wildfly.swarm.transactions.runtime;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
@@ -50,13 +51,28 @@ public class TransactionsConfiguration extends AbstractServerConfiguration<Trans
     public List<ModelNode> getList(TransactionsFraction fraction) throws Exception {
         List<ModelNode> list = new ArrayList<>();
 
-        ModelNode node = new ModelNode();
-        node.get(OP_ADDR).set(EXTENSION, "org.jboss.as.transactions");
-        node.get(OP).set(ADD);
-        list.add(node);
-
         list.addAll(Marshaller.marshal(fraction));
 
+        ModelNode node = new ModelNode();
+        node.get(OP_ADDR).set(PathAddress.pathAddress(PathElement.pathElement("socket-binding-group", "default-sockets")).append("socket-binding", "txn-recovery-environment").toModelNode());
+        node.get(OP).set(ADD);
+        node.get(PORT).set(fraction.getPort());
+        list.add(node);
+
+        node = new ModelNode();
+        node.get(OP_ADDR).set(PathAddress.pathAddress(PathElement.pathElement("socket-binding-group", "default-sockets")).append("socket-binding", "txn-status-manager").toModelNode());
+        node.get(OP).set(ADD);
+        node.get(PORT).set(fraction.getStatusPort());
+        list.add(node);
+
         return list;
+    }
+
+    @Override
+    public Optional<ModelNode> getExtension() {
+        ModelNode node = new ModelNode();
+        node.get(OP_ADDR).add(EXTENSION, "org.jboss.as.transactions");
+        node.get(OP).set(ADD);
+        return Optional.of(node);
     }
 }

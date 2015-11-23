@@ -17,6 +17,7 @@ package org.wildfly.swarm.remoting.runtime;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.jboss.dmr.ModelNode;
 import org.wildfly.swarm.config.remoting.EndpointConfiguration;
@@ -54,13 +55,16 @@ public class RemotingConfiguration extends AbstractServerConfiguration<RemotingF
     public List<ModelNode> getList(RemotingFraction fraction) throws Exception {
         List<ModelNode> list = new ArrayList<>();
 
-        ModelNode node = new ModelNode();
-        node.get(OP_ADDR).set(EXTENSION, "org.jboss.as.remoting");
-        node.get(OP).set(ADD);
-        list.add(node);
-
         list.addAll(Marshaller.marshal(fraction));
 
         return list;
+    }
+
+    @Override
+    public Optional<ModelNode> getExtension() {
+        ModelNode node = new ModelNode();
+        node.get(OP_ADDR).add(EXTENSION, "org.jboss.as.remoting");
+        node.get(OP).set(ADD);
+        return Optional.of(node);
     }
 }

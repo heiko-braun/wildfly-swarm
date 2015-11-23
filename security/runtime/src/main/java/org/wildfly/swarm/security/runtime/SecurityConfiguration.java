@@ -18,6 +18,7 @@ package org.wildfly.swarm.security.runtime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 
 import org.jboss.dmr.ModelNode;
 import org.wildfly.swarm.config.runtime.invocation.Marshaller;
@@ -64,17 +65,16 @@ public class SecurityConfiguration extends AbstractServerConfiguration<SecurityF
 
         List<ModelNode> list = new ArrayList<>();
 
-        ModelNode address = new ModelNode();
-
-        address.setEmptyList();
-
-        ModelNode add = new ModelNode();
-        add.get(OP_ADDR).set(address).add(EXTENSION, "org.jboss.as.security");
-        add.get(OP).set(ADD);
-        list.add(add);
-
         list.addAll(Marshaller.marshal(fraction));
 
         return list;
+    }
+
+    @Override
+    public Optional<ModelNode> getExtension() {
+        ModelNode add = new ModelNode();
+        add.get(OP_ADDR).add(EXTENSION, "org.jboss.as.security");
+        add.get(OP).set(ADD);
+        return Optional.of(add);
     }
 }

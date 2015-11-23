@@ -17,6 +17,7 @@ package org.wildfly.swarm.mail.runtime;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
@@ -55,11 +56,6 @@ public class MailConfiguration extends AbstractServerConfiguration<MailFraction>
 
         List<ModelNode> list = new ArrayList<>();
 
-        ModelNode node = new ModelNode();
-        node.get(OP_ADDR).set(EXTENSION, "org.jboss.as.mail");
-        node.get(OP).set(ADD);
-        list.add(node);
-
         Mail mail = new Mail();
         List<ModelNode> socketBindings = addSmtpServers(fraction, mail);
 
@@ -67,6 +63,15 @@ public class MailConfiguration extends AbstractServerConfiguration<MailFraction>
         list.addAll(socketBindings);
 
         return list;
+    }
+
+    @Override
+    public Optional<ModelNode> getExtension() {
+        ModelNode node = new ModelNode();
+        node.get(OP_ADDR).add(EXTENSION, "org.jboss.as.mail");
+        node.get(OP).set(ADD);
+
+        return Optional.of(node);
     }
 
     protected List<ModelNode> addSmtpServers(MailFraction fraction, Mail mail) {

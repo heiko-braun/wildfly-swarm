@@ -17,6 +17,7 @@ package org.wildfly.swarm.bean.validation.runtime;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.jboss.dmr.ModelNode;
 import org.wildfly.swarm.bean.validation.BeanValidationFraction;
@@ -47,13 +48,16 @@ public class BeanValidationConfiguration extends AbstractServerConfiguration<Bea
 
         List<ModelNode> list = new ArrayList<>();
 
-        ModelNode node = new ModelNode();
-        node.get(OP_ADDR).set(EXTENSION, "org.wildfly.extension.bean-validation");
-        node.get(OP).set(ADD);
-        list.add(node);
-
         list.addAll(Marshaller.marshal(fraction));
 
         return list;
+    }
+
+    @Override
+    public Optional<ModelNode> getExtension() {
+        ModelNode node = new ModelNode();
+        node.get(OP_ADDR).add(EXTENSION, "org.wildfly.extension.bean-validation");
+        node.get(OP).set(ADD);
+        return Optional.of(node);
     }
 }

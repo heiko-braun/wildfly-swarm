@@ -17,6 +17,7 @@ package org.wildfly.swarm.messaging.runtime;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
@@ -60,13 +61,16 @@ public class MessagingConfiguration extends AbstractServerConfiguration<Messagin
     public List<ModelNode> getList(MessagingFraction fraction) throws Exception {
         List<ModelNode> list = new ArrayList<>();
 
-        ModelNode node = new ModelNode();
-        node.get(OP_ADDR).set(EXTENSION, "org.wildfly.extension.messaging-activemq");
-        node.get(OP).set(ADD);
-        list.add(node);
-
         list.addAll(Marshaller.marshal(fraction));
 
         return list;
+    }
+
+    @Override
+    public Optional<ModelNode> getExtension() {
+        ModelNode node = new ModelNode();
+        node.get(OP_ADDR).add(EXTENSION, "org.wildfly.extension.messaging-activemq");
+        node.get(OP).set(ADD);
+        return Optional.of(node);
     }
 }

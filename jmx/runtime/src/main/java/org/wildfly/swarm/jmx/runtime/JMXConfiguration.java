@@ -23,6 +23,7 @@ import org.wildfly.swarm.jmx.JMXFraction;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.*;
 
@@ -44,19 +45,23 @@ public class JMXConfiguration extends AbstractServerConfiguration<JMXFraction> {
     public List<ModelNode> getList(JMXFraction fraction) {
         List<ModelNode> list = new ArrayList<>();
 
-        ModelNode node = new ModelNode();
-        node.get(OP_ADDR).set(EXTENSION, "org.jboss.as.jmx");
-        node.get(OP).set(ADD);
-        list.add(node);
-
         PathAddress address = PathAddress.pathAddress(PathElement.pathElement(SUBSYSTEM, "jmx"));
 
-        node = new ModelNode();
+        ModelNode node = new ModelNode();
         node.get(OP_ADDR).set(address.toModelNode());
         node.get(OP).set(ADD);
         list.add(node);
 
         return list;
 
+    }
+
+    @Override
+    public Optional<ModelNode> getExtension() {
+        ModelNode node = new ModelNode();
+        node.get(OP_ADDR).add(EXTENSION, "org.jboss.as.jmx");
+        node.get(OP).set(ADD);
+
+        return Optional.of(node);
     }
 }

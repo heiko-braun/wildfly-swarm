@@ -64,5 +64,4 @@ public class DatasourcesInVmTest {
         Assert.assertEquals("Wrong number of add operations", 3, operationList.size());
     }
 
-
 }

@@ -17,6 +17,7 @@ package org.wildfly.swarm.weld.runtime;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.jboss.dmr.ModelNode;
 import org.wildfly.swarm.config.runtime.invocation.Marshaller;
@@ -47,14 +48,17 @@ public class WeldConfiguration extends AbstractServerConfiguration<WeldFraction>
     public List<ModelNode> getList(WeldFraction fraction) throws Exception {
         List<ModelNode> list = new ArrayList<>();
 
-        ModelNode node = new ModelNode();
-        node.get(OP_ADDR).set(EXTENSION, "org.jboss.as.weld");
-        node.get(OP).set(ADD);
-        list.add(node);
-
         list.addAll(Marshaller.marshal(fraction));
 
         return list;
 
+    }
+
+    @Override
+    public Optional<ModelNode> getExtension() {
+        ModelNode node = new ModelNode();
+        node.get(OP_ADDR).add(EXTENSION, "org.jboss.as.weld");
+        node.get(OP).set(ADD);
+        return Optional.of(node);
     }
 }

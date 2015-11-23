@@ -25,6 +25,7 @@ import org.wildfly.swarm.keycloak.KeycloakFraction;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.*;
 
@@ -54,16 +55,19 @@ public class KeycloakConfiguration extends AbstractServerConfiguration<KeycloakF
         PathAddress address = PathAddress.pathAddress(PathElement.pathElement(SUBSYSTEM, "keycloak"));
 
         ModelNode node = new ModelNode();
-        node.get(OP_ADDR).set(EXTENSION, "org.keycloak.keycloak-adapter-subsystem");
-        node.get(OP).set(ADD);
-        list.add(node);
-
-        node = new ModelNode();
         node.get(OP_ADDR).set(address.toModelNode());
         node.get(OP).set(ADD);
         list.add(node);
 
         return list;
 
+    }
+
+    @Override
+    public Optional<ModelNode> getExtension() {
+        ModelNode node = new ModelNode();
+        node.get(OP_ADDR).add(EXTENSION, "org.keycloak.keycloak-adapter-subsystem");
+        node.get(OP).set(ADD);
+        return Optional.of(node);
     }
 }

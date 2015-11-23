@@ -45,7 +45,7 @@ public class ConnectorConfiguration extends AbstractServerConfiguration<Connecto
     @Override
     public Optional<ModelNode> getExtension() {
         ModelNode node = new ModelNode();
-        node.get(OP_ADDR).set(EXTENSION, EXTENSION_NAME);
+        node.get(OP_ADDR).add(EXTENSION, EXTENSION_NAME);
         node.get(OP).set(ADD);
 
         return Optional.of(node);

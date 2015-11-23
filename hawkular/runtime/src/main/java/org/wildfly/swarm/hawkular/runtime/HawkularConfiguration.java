@@ -18,6 +18,7 @@ package org.wildfly.swarm.hawkular.runtime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -35,6 +36,8 @@ import org.wildfly.swarm.hawkular.Metric;
 import org.wildfly.swarm.hawkular.MetricSet;
 import org.wildfly.swarm.hawkular.ResourceType;
 import org.wildfly.swarm.hawkular.ResourceTypeSet;
+
+import javax.swing.text.html.Option;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADD;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.EXTENSION;
@@ -80,11 +83,6 @@ public class HawkularConfiguration extends AbstractServerConfiguration<HawkularF
         List<ModelNode> list = new ArrayList<>();
 
         ModelNode node = new ModelNode();
-        node.get(OP_ADDR).set(EXTENSION, "org.hawkular.agent.monitor");
-        node.get(OP).set(ADD);
-        list.add(node);
-
-        node = new ModelNode();
         node.get(OP_ADDR).set(this.address.toModelNode());
         node.get(OP).set(ADD);
         node.get("apiJndiName").set("java:global/hawkular/agent/monitor/api");
@@ -161,6 +159,14 @@ public class HawkularConfiguration extends AbstractServerConfiguration<HawkularF
         for (Metric metric : metricSet.metrics()) {
             addMetric(setAddr, metric, list);
         }
+    }
+
+    @Override
+    public Optional<ModelNode> getExtension() {
+        ModelNode node = new ModelNode();
+        node.get(OP_ADDR).add(EXTENSION, "org.hawkular.agent.monitor");
+        node.get(OP).set(ADD);
+        return Optional.of(node);
     }
 
     private void addMetric(PathAddress setAddr, Metric metric, List<ModelNode> list) {
