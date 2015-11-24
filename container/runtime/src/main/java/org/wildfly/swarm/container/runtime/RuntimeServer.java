@@ -140,10 +140,6 @@ public class RuntimeServer implements Server {
         // the subsystem configurations
         getList(config, bootstrapOperations);
 
-        // float all <extension> up to the head of the list
-        // TODO: [hb] remove once all fractions provide explicit extensions
-        bootstrapOperations.sort(new ExtensionOpPriorityComparator());
-
         //System.err.println( list );
 
         Thread.currentThread().setContextClassLoader(RuntimeServer.class.getClassLoader());
@@ -217,29 +213,6 @@ public class RuntimeServer implements Server {
 
         return this.deployer;
     }
-
-    private static class ExtensionOpPriorityComparator implements Comparator<ModelNode> {
-        @Override
-        public int compare(ModelNode left, ModelNode right) {
-
-            PathAddress leftAddr = PathAddress.pathAddress(left.get(OP_ADDR));
-            PathAddress rightAddr = PathAddress.pathAddress(right.get(OP_ADDR));
-
-            String leftOpName = left.require(OP).asString();
-            String rightOpName = left.require(OP).asString();
-
-            if (leftAddr.size() == 1 && leftAddr.getElement(0).getKey().equals(EXTENSION) && leftOpName.equals(ADD)) {
-                return -1;
-            }
-
-            if (rightAddr.size() == 1 && rightAddr.getElement(0).getKey().equals(EXTENSION) && rightOpName.equals(ADD)) {
-                return 1;
-            }
-
-            return 0;
-        }
-    }
-
 
     public void stop() throws Exception {
 
