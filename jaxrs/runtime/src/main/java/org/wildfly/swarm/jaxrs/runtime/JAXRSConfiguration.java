@@ -17,12 +17,17 @@ package org.wildfly.swarm.jaxrs.runtime;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.jboss.dmr.ModelNode;
+import org.jboss.staxmapper.XMLElementReader;
 import org.wildfly.swarm.config.runtime.invocation.Marshaller;
+import org.wildfly.swarm.container.runtime.AbstractParserFactory;
 import org.wildfly.swarm.container.runtime.AbstractServerConfiguration;
 import org.wildfly.swarm.jaxrs.JAXRSFraction;
+
+import javax.xml.namespace.QName;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADD;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.EXTENSION;
@@ -59,5 +64,10 @@ public class JAXRSConfiguration extends AbstractServerConfiguration<JAXRSFractio
         node.get(OP_ADDR).add(EXTENSION, "org.jboss.as.jaxrs");
         node.get(OP).set(ADD);
         return Optional.of(node);
+    }
+
+    @Override
+    public Optional<Map<QName, XMLElementReader<List<ModelNode>>>> getSubsystemParsers() throws Exception {
+        return AbstractParserFactory.mapParserNamespaces(new JAXRSParserFactory());
     }
 }
