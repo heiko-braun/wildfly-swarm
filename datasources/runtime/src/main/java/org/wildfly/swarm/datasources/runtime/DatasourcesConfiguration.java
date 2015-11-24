@@ -15,16 +15,15 @@
  */
 package org.wildfly.swarm.datasources.runtime;
 
-import org.jboss.as.connector.subsystems.datasources.DataSourcesExtension;
 import org.jboss.dmr.ModelNode;
 import org.jboss.staxmapper.XMLElementReader;
 import org.wildfly.swarm.config.runtime.invocation.Marshaller;
+import org.wildfly.swarm.container.runtime.AbstractParserFactory;
 import org.wildfly.swarm.container.runtime.AbstractServerConfiguration;
 import org.wildfly.swarm.datasources.DatasourcesFraction;
 
 import javax.xml.namespace.QName;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -56,11 +55,6 @@ public class DatasourcesConfiguration extends AbstractServerConfiguration<Dataso
 
     @Override
     public Optional<Map<QName, XMLElementReader<List<ModelNode>>>> getSubsystemParsers() throws Exception {
-        Map<QName, XMLElementReader<List<ModelNode>>> map = new HashMap<>();
-        new DatasourceParserFactory().create().forEach((qName, XMLElementReader) -> {
-            map.put(new QName(qName.getNamespaceURI(), "subsystem"), XMLElementReader);
-        });
-
-        return Optional.of(map);
+        return AbstractParserFactory.mapParserNamespaces(new DatasourceParserFactory());
     }
 }

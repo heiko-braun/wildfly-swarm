@@ -15,18 +15,17 @@
  */
 package org.wildfly.swarm.jca.runtime;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
 import org.jboss.dmr.ModelNode;
 import org.jboss.staxmapper.XMLElementReader;
 import org.wildfly.swarm.config.runtime.invocation.Marshaller;
+import org.wildfly.swarm.container.runtime.AbstractParserFactory;
 import org.wildfly.swarm.container.runtime.AbstractServerConfiguration;
 import org.wildfly.swarm.jca.JCAFraction;
 
 import javax.xml.namespace.QName;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * @author Bob McWhirter
@@ -50,10 +49,6 @@ public class JCAConfiguration extends AbstractServerConfiguration<JCAFraction> {
 
     @Override
     public Optional<Map<QName, XMLElementReader<List<ModelNode>>>> getSubsystemParsers() throws Exception {
-        Map<QName, XMLElementReader<List<ModelNode>>> map = new HashMap<>();
-        new JCAParserFactory().create().forEach((qName, XMLElementReader) -> {
-            map.put(new QName(qName.getNamespaceURI(), "subsystem"), XMLElementReader);
-        });
-        return Optional.of(map);
+        return AbstractParserFactory.mapParserNamespaces(new JCAParserFactory());
     }
 }

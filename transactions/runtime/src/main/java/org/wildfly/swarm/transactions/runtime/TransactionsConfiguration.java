@@ -15,27 +15,22 @@
  */
 package org.wildfly.swarm.transactions.runtime;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.dmr.ModelNode;
 import org.jboss.staxmapper.XMLElementReader;
 import org.wildfly.swarm.config.runtime.invocation.Marshaller;
+import org.wildfly.swarm.container.runtime.AbstractParserFactory;
 import org.wildfly.swarm.container.runtime.AbstractServerConfiguration;
 import org.wildfly.swarm.transactions.TransactionsFraction;
 
 import javax.xml.namespace.QName;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADD;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.EXTENSION;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PORT;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.*;
 
 /**
  * @author Bob McWhirter
@@ -83,10 +78,6 @@ public class TransactionsConfiguration extends AbstractServerConfiguration<Trans
 
     @Override
     public Optional<Map<QName, XMLElementReader<List<ModelNode>>>> getSubsystemParsers() throws Exception {
-        Map<QName, XMLElementReader<List<ModelNode>>> map = new HashMap<>();
-        new TransactionParserFactory().create().forEach((qName, XMLElementReader) -> {
-            map.put(new QName(qName.getNamespaceURI(), "subsystem"), XMLElementReader);
-        });
-        return Optional.of(map);
+        return AbstractParserFactory.mapParserNamespaces(new TransactionParserFactory());
     }
 }

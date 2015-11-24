@@ -18,15 +18,20 @@ package org.wildfly.swarm.security.runtime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.jboss.dmr.ModelNode;
+import org.jboss.staxmapper.XMLElementReader;
 import org.wildfly.swarm.config.runtime.invocation.Marshaller;
 import org.wildfly.swarm.config.security.SecurityDomain;
 import org.wildfly.swarm.config.security.security_domain.ClassicAuthentication;
 import org.wildfly.swarm.config.security.security_domain.authentication.LoginModule;
+import org.wildfly.swarm.container.runtime.AbstractParserFactory;
 import org.wildfly.swarm.container.runtime.AbstractServerConfiguration;
 import org.wildfly.swarm.security.SecurityFraction;
+
+import javax.xml.namespace.QName;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADD;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.EXTENSION;
@@ -76,5 +81,10 @@ public class SecurityConfiguration extends AbstractServerConfiguration<SecurityF
         add.get(OP_ADDR).add(EXTENSION, "org.jboss.as.security");
         add.get(OP).set(ADD);
         return Optional.of(add);
+    }
+
+    @Override
+    public Optional<Map<QName, XMLElementReader<List<ModelNode>>>> getSubsystemParsers() throws Exception {
+        return AbstractParserFactory.mapParserNamespaces(new SecurityParserFactory());
     }
 }

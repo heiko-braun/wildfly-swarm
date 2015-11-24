@@ -11,12 +11,16 @@ import javax.xml.namespace.QName;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * @author Heiko Braun
  * @since 23/11/15
  */
 public abstract class AbstractParserFactory {
+
+    private static final String SUBSYSTEM = "subsystem";
 
     public abstract Map<QName,  XMLElementReader<List<ModelNode>>> create();
 
@@ -48,5 +52,22 @@ public abstract class AbstractParserFactory {
         public void setProfileParsingCompletionHandler(ProfileParsingCompletionHandler profileParsingCompletionHandler) {
             // ignore
         }
+    }
+
+    /**
+     * Parsers retain the namespace, but the local part becomes 'subsystem'
+     * @param factory the factory producing the parsers
+     * @return
+     */
+    public static Optional<Map<QName, XMLElementReader<List<ModelNode>>>> mapParserNamespaces(AbstractParserFactory factory) {
+        Map<QName, XMLElementReader<List<ModelNode>>> result =
+                factory.create().entrySet()
+                        .stream()
+                        .collect(Collectors.toMap(
+                                e -> new QName(e.getKey().getNamespaceURI(), SUBSYSTEM),
+                                e -> e.getValue()
+                        ));
+
+        return Optional.of(result);
     }
 }
