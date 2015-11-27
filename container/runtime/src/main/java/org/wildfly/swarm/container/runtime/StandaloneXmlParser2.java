@@ -95,7 +95,7 @@ public class StandaloneXmlParser2 {
 
             xmlMapper.parseDocument(operationList, reader);
 
-            operationList.forEach(System.out::println);
+            //operationList.forEach(System.out::println);
 
         } catch (Throwable t) {
             t.printStackTrace();

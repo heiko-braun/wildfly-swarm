@@ -245,8 +245,10 @@ public class RuntimeServer implements Server {
 
     private void applyDefaults(Container config) throws Exception {
         config.applyFractionDefaults(this);
-        applyInterfaceDefaults(config);
-        applySocketBindingGroupDefaults(config);
+        if(!xmlConfig.isPresent()) {
+            applyInterfaceDefaults(config);
+            applySocketBindingGroupDefaults(config);
+        }
     }
 
     private void applyInterfaceDefaults(Container config) {
@@ -317,14 +319,14 @@ public class RuntimeServer implements Server {
 
     private void getList(Container config, List<ModelNode> list) throws Exception {
 
-        configureInterfaces(config, list);
-        configureSocketBindingGroups(config, list);
-
-        if(xmlConfig.isPresent())
+        if(xmlConfig.isPresent()) {
             configureFractionsFromXML(config, list);
-        else
+        }
+        else {
+            configureInterfaces(config, list);
+            configureSocketBindingGroups(config, list);
             configureFractions(config, list);
-
+        }
     }
 
     private void configureInterfaces(Container config, List<ModelNode> list) {
