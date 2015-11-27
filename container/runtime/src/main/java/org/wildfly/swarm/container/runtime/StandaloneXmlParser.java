@@ -1,9 +1,12 @@
 package org.wildfly.swarm.container.runtime;
 
 import org.jboss.as.controller.logging.ControllerLogger;
+import org.jboss.as.controller.parsing.Attribute;
 import org.jboss.as.controller.parsing.Element;
 import org.jboss.as.controller.parsing.Namespace;
+import org.jboss.as.controller.resource.AbstractSocketBindingResourceDefinition;
 import org.jboss.dmr.ModelNode;
+import org.jboss.dmr.ModelType;
 import org.jboss.dmr.Property;
 import org.jboss.staxmapper.XMLElementReader;
 import org.jboss.staxmapper.XMLExtendedStreamReader;
@@ -22,10 +25,9 @@ import java.util.List;
 import java.util.Map;
 
 import static javax.xml.stream.XMLStreamConstants.END_ELEMENT;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
-import static org.jboss.as.controller.parsing.ParseUtils.nextElement;
-import static org.jboss.as.controller.parsing.ParseUtils.requireNoAttributes;
-import static org.jboss.as.controller.parsing.ParseUtils.unexpectedElement;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.*;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADD;
+import static org.jboss.as.controller.parsing.ParseUtils.*;
 
 /**
  * A derivation of the parser in wildfly core without the bells and whistles to load modules on the fly, etc.
@@ -44,6 +46,7 @@ public class StandaloneXmlParser {
     public StandaloneXmlParser() {
         xmlMapper = XMLMapper.Factory.create();
         xmlMapper.registerRootElement(new QName("urn:jboss:domain:4.0", "server"), new StandaloneXmlReader());
+        //xmlMapper.registerRootElement(new QName("urn:jboss:domain:4.0", "socket-binding-group"), new SocketBindingParser());
     }
 
     public List<ModelNode> parse(URL xmlConfig) {
@@ -71,7 +74,7 @@ public class StandaloneXmlParser {
     }
 
     /**
-     * Add a parser for a suboart of the XML model.
+     * Add a parser for a subpart of the XML model.
      *
      * @param elementName the FQ element name (i..e subsystem name)
      * @param parser creates ModelNode's from XML input
@@ -123,7 +126,7 @@ public class StandaloneXmlParser {
             }
 
             if (element == Element.SOCKET_BINDING_GROUP) {
-                skip(element, reader);
+                reader.handleAny(operationList);
                 element = nextElement(reader, namespace);
             }
 
@@ -167,7 +170,7 @@ public class StandaloneXmlParser {
                 // parse subsystem
                 final List<ModelNode> subsystems = new ArrayList<ModelNode>();
                 try {
-                    reader.handleAny(subsystems);
+                    reader.handleAny(subsystems);   // delegates to a XMLElementReader registered in #addDelegate()
                 } catch (XMLStreamException e) {
                     QName element = new QName(reader.getNamespaceURI(), reader.getLocalName());
                     System.out.println("Failed to parse "+ element +", skipping ...");
@@ -186,6 +189,32 @@ public class StandaloneXmlParser {
                     }
                     update.get(OP_ADDR).set(subsystemAddress);
                     list.add(update);
+                }
+            }
+        }
+    }
+
+    class SocketBindingParser implements XMLElementReader<List<ModelNode>> {
+        @Override
+        public void readElement(XMLExtendedStreamReader reader, List<ModelNode> payload) throws XMLStreamException {
+
+            while (reader.hasNext() && reader.nextTag() != END_ELEMENT) {
+
+                final Element element = Element.forName(reader.getLocalName());
+
+                switch (element) {
+                    case SOCKET_BINDING: {
+                        System.out.println(">> " + reader.getLocalName() + " :: " + reader.getAttributeValue(0));
+
+                        reader.discardRemainder();
+                        break;
+                    }
+                    case OUTBOUND_SOCKET_BINDING: {
+                        reader.discardRemainder();
+                        break;
+                    }
+                    default:
+                        throw unexpectedElement(reader);
                 }
             }
         }
