@@ -395,9 +395,9 @@ public class RuntimeServer implements Server {
     @SuppressWarnings("unchecked")
     private void configureFractionsFromXML(Container container, List<ModelNode> operationList) throws Exception {
 
-        StandaloneXmlParser parser = new StandaloneXmlParser();
+        StandaloneXmlParser2 parser = new StandaloneXmlParser2();
 
-        FractionProcessor<StandaloneXmlParser> consumer = (p, cfg, fraction) -> {
+        FractionProcessor<StandaloneXmlParser2> consumer = (p, cfg, fraction) -> {
             try {
                 if(cfg.getSubsystemParsers().isPresent())
                 {
