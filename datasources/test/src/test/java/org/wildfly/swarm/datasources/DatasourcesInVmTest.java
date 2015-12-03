@@ -21,7 +21,6 @@ import org.jboss.dmr.ModelNode;
 import org.junit.Test;
 import org.wildfly.swarm.container.Container;
 import org.wildfly.swarm.container.runtime.StandaloneXmlParser;
-import org.wildfly.swarm.container.runtime.StandaloneXmlParser2;
 
 import javax.xml.namespace.QName;
 import java.net.URL;
@@ -55,7 +54,7 @@ public class DatasourcesInVmTest {
         // the actual parsing
         ClassLoader cl = DatasourcesInVmTest.class.getClassLoader();
         URL xmlConfig = cl.getResource("standalone.xml");
-        StandaloneXmlParser2 parser = new StandaloneXmlParser2();
+        StandaloneXmlParser parser = new StandaloneXmlParser();
 
         parser.addDelegate(
                 new QName("urn:jboss:domain:datasources:4.0", "subsystem"),

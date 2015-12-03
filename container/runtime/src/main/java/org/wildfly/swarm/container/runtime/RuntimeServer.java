@@ -50,7 +50,6 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -397,9 +396,9 @@ public class RuntimeServer implements Server {
     @SuppressWarnings("unchecked")
     private void configureFractionsFromXML(Container container, List<ModelNode> operationList) throws Exception {
 
-        StandaloneXmlParser2 parser = new StandaloneXmlParser2();
+        StandaloneXmlParser parser = new StandaloneXmlParser();
 
-        FractionProcessor<StandaloneXmlParser2> consumer = (p, cfg, fraction) -> {
+        FractionProcessor<StandaloneXmlParser> consumer = (p, cfg, fraction) -> {
             try {
                 if(cfg.getSubsystemParsers().isPresent())
                 {

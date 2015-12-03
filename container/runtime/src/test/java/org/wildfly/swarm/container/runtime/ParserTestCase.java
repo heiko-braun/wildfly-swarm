@@ -1,10 +1,12 @@
 package org.wildfly.swarm.container.runtime;
 
+import junit.framework.Assert;
+import org.jboss.dmr.ModelNode;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import javax.xml.namespace.QName;
 import java.net.URL;
+import java.util.List;
 
 /**
  * @author Heiko Braun
@@ -21,16 +23,9 @@ public class ParserTestCase {
     }
 
     @Test
-    public void testCustomParser() throws Exception {
-        StandaloneXmlParser parser = new StandaloneXmlParser();
-        parser.parse(xml);
-    }
-
-    @Test
     public void testDelegatingParser() throws Exception {
-        StandaloneXmlParser2 parser = new StandaloneXmlParser2();
-
-        //parser.addDelegate(new QName("urn:jboss:domain:logging:3.0", "subsystem"), StandaloneXmlParser2.NOOP_READER);
-        parser.parse(xml);
+        StandaloneXmlParser parser = new StandaloneXmlParser();
+        List<ModelNode> operations = parser.parse(xml);
+        Assert.assertEquals(28, operations.size());
     }
 }
