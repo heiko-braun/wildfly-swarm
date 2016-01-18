@@ -15,8 +15,17 @@
  */
 package org.wildfly.swarm.datasources;
 
+import junit.framework.Assert;
+import org.jboss.as.connector.subsystems.datasources.DataSourcesExtension;
+import org.jboss.dmr.ModelNode;
 import org.junit.Test;
 import org.wildfly.swarm.container.Container;
+import org.wildfly.swarm.container.runtime.StandaloneXmlParser;
+
+import javax.xml.namespace.QName;
+import java.net.URL;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Bob McWhirter
@@ -29,4 +38,28 @@ public class DatasourcesInVmTest {
         container.fraction( new DatasourcesFraction() );
         container.start().stop();
     }
+
+    @Test
+    public void testParser() throws Exception {
+        // the actual parsing
+        ClassLoader cl = DatasourcesInVmTest.class.getClassLoader();
+        URL xmlConfig = cl.getResource("standalone.xml");
+        StandaloneXmlParser parser = new StandaloneXmlParser();
+
+        parser.addDelegate(
+                new QName("urn:jboss:domain:datasources:4.0", "subsystem"),
+                new DataSourcesExtension.DataSourceSubsystemParser()
+        );
+        List<ModelNode> operationList = parser.parse(xmlConfig);
+
+
+        List<ModelNode> matches = operationList.stream()
+                .filter(modelNode -> modelNode.get("address").toString().contains("datasources"))
+                .collect(Collectors.toList());
+
+        matches.forEach(modelNode -> System.out.println(modelNode));
+
+        Assert.assertEquals("Wrong number of add operations", 3, matches.size());
+    }
+
 }

@@ -431,31 +431,31 @@ public class RuntimeServer implements Server {
 
     private void getExtensions(Container container, List<ModelNode> list) throws Exception {
 
-           FractionProcessor<List<ModelNode>> consumer = (context, cfg, fraction) -> {
-               try {
-                   Optional<ModelNode> extension = cfg.getExtension();
-                   extension.map(modelNode -> list.add(modelNode));
-               } catch (Exception e) {
-                   throw new RuntimeException(e);
-               }
-           };
+        FractionProcessor<List<ModelNode>> consumer = (context, cfg, fraction) -> {
+            try {
+                Optional<ModelNode> extension = cfg.getExtension();
+                extension.map(modelNode -> list.add(modelNode));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
 
-           visitFractions(container, list, consumer);
+        visitFractions(container, list, consumer);
 
-       }
+    }
 
 
     private void getList(Container config, List<ModelNode> list) throws Exception {
 
-            if(xmlConfig.isPresent()) {
-                configureFractionsFromXML(config, list);
-            }
-            else {
-                configureInterfaces(config, list);
-                configureSocketBindingGroups(config, list);
-                configureFractions(config, list);
-            }
+        if(xmlConfig.isPresent()) {
+            configureFractionsFromXML(config, list);
         }
+        else {
+            configureInterfaces(config, list);
+            configureSocketBindingGroups(config, list);
+            configureFractions(config, list);
+        }
+    }
 
     private void configureInterfaces(Container config, List<ModelNode> list) {
         List<Interface> ifaces = config.ifaces();

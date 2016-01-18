@@ -15,8 +15,13 @@
  */
 package org.wildfly.swarm.infinispan.runtime;
 
+import org.jboss.dmr.ModelNode;
 import org.wildfly.swarm.container.runtime.MarshallingServerConfiguration;
 import org.wildfly.swarm.infinispan.InfinispanFraction;
+
+import java.util.Optional;
+
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.*;
 
 /**
  * @author Lance Ball
@@ -32,5 +37,13 @@ public class InfinispanConfiguration extends MarshallingServerConfiguration<Infi
     @Override
     public InfinispanFraction defaultFraction() {
         return InfinispanFraction.createDefaultFraction();
+    }
+
+    @Override
+    public Optional<ModelNode> getExtension() {
+        ModelNode node = new ModelNode();
+        node.get(OP_ADDR).add(EXTENSION, "org.jboss.as.clustering.infinispan");
+        node.get(OP).set(ADD);
+        return Optional.of(node);
     }
 }
